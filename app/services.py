@@ -1,4 +1,4 @@
-# app/services.py
+# app/services.py - BAGIAN 1 DARI 3
 import yfinance as yf
 import pandas as pd
 import numpy as np
@@ -68,6 +68,7 @@ def cek_kekuatan_support_dan_resisten(df, harga_sekarang, toleransi_persen=0.015
         
     resisten_terdekat = int(df['High'].tail(120).max())
     return klasifikasi_support, resisten_terdekat
+# app/services.py - BAGIAN 2 DARI 3
 
 def hitung_analisis_saham(ticker_symbol: str):
     if not ticker_symbol.endswith(".JK"):
@@ -171,6 +172,13 @@ def hitung_analisis_saham(ticker_symbol: str):
     elif f2_kondisi and not wajib_stop_loss:
         rekomendasi = "STRONG BUY / MOMENTUM RIDE 🚀 (Konfirmasi Tren ADX Meledak!)"
 
+    # --- E. GENERATE TEXT PENJELASAN WA OTOMATIS ---
+    posisi_pos = "di atas" if harga_sekarang > ema20 else "di bawah"
+    vol_text = "disertai volume tinggi" if is_volume_strong else "dengan volume cenderung rendah"
+    penjelasan_chart = f"Harga {ticker_symbol.upper()} (Rp{harga_sekarang}) berada {posisi_pos} garis acuan EMA 20 (Rp{ema20}). Pergerakan harian berjalan {vol_text}. Grafik menunjukkan kondisi {status_tren}. Arus institusi saat ini terdeteksi {status_arus_modal}."
+
+    panduan_saran_growin = f"1. Pasang Auto Order Beli pertama sedekat mungkin dengan lantai EMA 20 di area Rp{ema20}. 2. Jika Anda menerapkan investasi jangka panjang tanpa cut loss, siapkan peluru serok kedua di area benteng EMA 50 (Rp{ema50}). 3. Set jaring jual otomatis Take Profit GTC langsung di atap resisten Rp{resisten_terdekat}."
+
     return {
         "saham": ticker_symbol.upper(),
         "harga_saat_ini": harga_sekarang,
@@ -189,15 +197,18 @@ def hitung_analisis_saham(ticker_symbol: str):
             "rsi_14": round(rsi, 2), "stochastic_d": round(stoch_d, 2), "adx_strength": round(adx, 2),
             "status_arus_modal": status_arus_modal,
             "konfirmasi_oversold_swing": status_forum_swing,
-            "konfirmasi_daytrading_adx": status_forum_day
+            "konfirmasi_daytrading_adx": status_forum_day,
+            "penjelasan_chart": penjelasan_chart,
+            "panduan_saran_growin": panduan_saran_growin
         },
         "guardrail_proteksi": {
             "kategori_risiko": kategori_risiko,
             "aturan_akun": status_proteksi,
             "wajib_stop_loss": wajib_stop_loss
         },
-        "rekomendasi_akhir": rekomendasi
+        "rekomendasi_akhir": recommendations = rekomendasi
     }
+# app/services.py - BAGIAN 3 DARI 3
 
 def hitung_momentum_gorengan(ticker_symbol: str):
     if not ticker_symbol.endswith(".JK"):
@@ -222,7 +233,7 @@ def hitung_momentum_gorengan(ticker_symbol: str):
     
     volume_terakhir = terakhir['Volume']
     volume_rata_rata = df['Volume'].tail(35).mean()
-    # Perbaikan: Tambahkan baris baru
+    
     is_volume_spike = volume_terakhir > (volume_rata_rata * 2.5) 
     is_bullish_momentum = harga_sekarang > ema5 and ema5 > ema10
     is_trend_explosive = adx > 20.0 and plus_di > minus_di
@@ -233,20 +244,24 @@ def hitung_momentum_gorengan(ticker_symbol: str):
     info = saham.info
     beta = info.get('beta', 1.8) 
     
-    # === PERBAIKAN STRUKTUR AKHIR FUNGSI GORENGAN ===
     status_filter = "GAGAL 💤"
     if is_volume_spike and is_bullish_momentum and is_trend_explosive:
-        status_filter = "LOLOS SCREENING 🔥"
+        status_filter = "LOLOS SCREENING 🔥 (Ledakan ADX + Bandar Masuk!)"
 
-    # Baris Wajib: Mengembalikan payload data JSON utuh agar tidak memicu Error 500
     return {
         "saham": ticker_symbol.upper(),
+        "harga_saat_ini": harga_sekarang,
         "status_filter": status_filter,
         "indikator": {
+            "lonjakan_volume": f"{round(volume_terakhir / volume_rata_rata, 1)}x Lipat",
             "rsi_momentum": round(rsi, 2),
             "adx_power": round(adx, 2),
+            "tingkat_volatilitas_beta": round(beta, 2)
         },
-        "rekomendasi_aksi": "DAY TRADING CEPAT"
+        "bracket_order_growin": {
+            "target_take_profit": tp_level,
+            "batas_cut_loss": cl_level
+        },
+        "peringatan_keamanan": "RESIKO EKSTREM! Pergerakan harga murni ledakan tren momentum intraday.",
+        "rekomendasi_aksi": "DAY TRADING CEPAT - WAJIB LANGSUNG SET AUTO ORDER STOP LOSS DI GROWIN!"
     }
-
-   
